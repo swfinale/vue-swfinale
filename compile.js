@@ -20,7 +20,11 @@ class Compile {
         }
     }
 
-    //遍历el，把里面的内容搬到新创建fragment中
+    /**
+     * 遍历el，把里面的内容搬到新创建的fragment中
+     * @param el
+     * @returns {DocumentFragment}
+     */
     node2Fragment(el) {
         const fragment = document.createDocumentFragment();
         let child;
@@ -31,17 +35,17 @@ class Compile {
         return fragment
     }
 
-    //把动态值替换，把指令和事件做处理
+    /**
+     * 把动态值替换，把指令和事件做处理
+     * @param el
+     */
     compile(el) {
         // 遍历el
         const childNodes = el.childNodes;
         Array.from(childNodes).forEach(node => {
-            if (this.isElement(node)) {
-                // console.log('编译元素：' + node.nodeName)
-                //如果是元素节点，我们要处理k-xx，时间@xx
+            if (this.isElement(node)) {     //如果是元素节点，我们要处理k-xx，事件@xx
                 this.compileElement(node);
-            } else if (this.isInterpolation(node)) {
-                // console.log("编译文本："+ node.textContent)
+            } else if (this.isInterpolation(node)) {    //如果是插值表达式
                 this.compileText(node)
             }
             //递归子元素
@@ -51,8 +55,23 @@ class Compile {
         })
     }
 
+    /**
+     * 判断是不是一个元素
+     * @param node
+     * @returns {boolean}
+     */
     isElement(node) {
-        return node.nodeType === 1; //判断是不是一个元素
+        return node.nodeType === 1;
+    }
+
+    /**
+     * 判断是不是一个插值表达式
+     * @param node
+     * @returns {boolean|boolean}
+     */
+    isInterpolation(node) {
+        //需要满足{{xx}}
+        return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent);
     }
 
     compileElement(node) {
@@ -76,17 +95,27 @@ class Compile {
         })
     }
 
+    /**
+     * 把插值表达式替换为实际内容
+     * @param node
+     */
+    compileText(node) {
+        // {{xxx}}
+        //RegExp.$1是匹配分组部分
+        console.log(RegExp.$1)
+        node.textContent = this.$vm[RegExp.$1]
+        const exp = RegExp.$1;
+        //调用了textUpdator以更新页面
+        this.update(node, this.$vm, exp, 'text')
+    }
+
     text(node, vm, exp) {
         this.update(node, vm, exp, "text")  //传入text则执行textUpdator
     }
 
-    textUpdator(node, value) {
-        node.textContent = value
-    }
-
     //双向数据绑定
     model(node, vm, exp) {
-        //update是数值变了改界面
+        //数值变了改界面
         this.update(node, vm, exp, "model")
         //界面变了改数值
         node.addEventListener("input", e => {
@@ -94,36 +123,17 @@ class Compile {
         })
     }
 
-    modelUpdator(node, value) {
-        node.value = value;
-    }
-
     html(node, vm, exp) {
         this.update(node, vm, exp, "html")
     }
 
-    htmlUpdator(node, value) {
-        node.innerHTML = value
-    }
-
-    //插值表达式的判断
-    isInterpolation(node) {
-        //需要满足{{xx}}
-        return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent);
-    }
-
-    //把插值表达式替换为实际内容
-    compileText(node) {
-        // {{xxx}}
-        //RegExp.$1是匹配分组部分
-        console.log(RegExp.$1)
-        node.textContent = this.$vm[RegExp.$1]
-        const exp = RegExp.$1;
-        //this.update(node, this.$vm, exp, 'text')
-    }
-
-    //编写update函数,可复用
-    //exp是表达式，dir是具体操作: text,html,model
+    /**
+     * 可复用的update函数，供上面调用
+     * @param node
+     * @param vm
+     * @param exp   表达式
+     * @param dir   具体操作: text,html,model
+     */
     update(node, vm, exp, dir) {
         const fn = this[dir + 'Updator'];
         fn && fn(node, vm[exp])
@@ -131,6 +141,18 @@ class Compile {
         new Watcher(vm, exp, function () {
             fn && fn(node, vm[exp])
         })
+    }
+
+    textUpdator(node, value) {
+        node.textContent = value
+    }
+
+    modelUpdator(node, value) {
+        node.value = value;
+    }
+
+    htmlUpdator(node, value) {
+        node.innerHTML = value
     }
 
     eventHandler(node, vm, exp, eventName) {

@@ -5,9 +5,6 @@ class KVue {
         //响应化
         this.observe(this.$data)
 
-        //测试代码
-        // new Watcher(this, 'test');
-        // this.test;
         //创建编译器
         new Compile(options.el, this);
 
@@ -16,7 +13,10 @@ class KVue {
         }
     }
 
-    //递归遍历，使传递进来的对象响应化
+    /**
+     * 递归遍历，使传递进来的对象响应化
+     * @param value
+     */
     observe(value) {
         if (!value || typeof value !== 'object') {
             return
@@ -66,8 +66,9 @@ class KVue {
     }
 }
 
-
-//Dep:管理若干watcher实例，它和key一对一关系
+/**
+ * Dep:管理若干watcher实例，它和key一对一关系
+ */
 class Dep {
     constructor() {
         this.deps = []
@@ -83,7 +84,9 @@ class Dep {
     }
 }
 
-//保存ui中依赖，实现update函数可以更新它
+/**
+ * 保存ui中依赖，实现update函数可以更新它
+ */
 class Watcher {
     /**
      *
@@ -99,7 +102,7 @@ class Watcher {
         //将当前实例指向Dep.target
         Dep.target = this;
         this.vm[this.key];//读一次key触发getter
-        Dep.target = null
+        Dep.target = null;//做完之后再重置回去
     }
 
     update() {
