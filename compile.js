@@ -1,7 +1,12 @@
 //遍历模板，将里面的插值表达式进行处理
 //另外发现k-xx,@xx做特别处理
 class Compile {
-    constructor(el, vm) {   //元素，当前vue的实例
+    /**
+     *
+     * @param el 元素
+     * @param vm 当前vue的实例
+     */
+    constructor(el, vm) {
         this.$vm = vm;
         this.$el = document.querySelector(el);
         if (this.$el) {
@@ -35,7 +40,7 @@ class Compile {
                 // console.log('编译元素：' + node.nodeName)
                 //如果是元素节点，我们要处理k-xx，时间@xx
                 this.compileElement(node);
-            } else if (this.isIterpolation(node)) {
+            } else if (this.isInterpolation(node)) {
                 // console.log("编译文本："+ node.textContent)
                 this.compileText(node)
             }
@@ -50,12 +55,6 @@ class Compile {
         return node.nodeType === 1; //判断是不是一个元素
     }
 
-    //插值表达式的判断
-    isIterpolation(node) {
-        //需要满足{{xx}}
-        return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent);
-    }
-
     compileElement(node) {
         //查看node的特性中是否有k-11，@xx
         const nodeAttrs = node.attributes;
@@ -67,6 +66,7 @@ class Compile {
             if (attrName.indexOf('k-') === 0) {
                 const dir = attrName.substring(2);
                 //执行指令
+                /*如果是text,则执行textUpdator*/
                 this[dir] && this[dir](node, this.$vm, exp)    //如果它存在就执行它
             } else if (attrName.indexOf('@') === 0) {
                 //如果是事件
@@ -78,6 +78,10 @@ class Compile {
 
     text(node, vm, exp) {
         this.update(node, vm, exp, "text")  //传入text则执行textUpdator
+    }
+
+    textUpdator(node, value) {
+        node.textContent = value
     }
 
     //双向数据绑定
@@ -102,6 +106,12 @@ class Compile {
         node.innerHTML = value
     }
 
+    //插值表达式的判断
+    isInterpolation(node) {
+        //需要满足{{xx}}
+        return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent);
+    }
+
     //把插值表达式替换为实际内容
     compileText(node) {
         // {{xxx}}
@@ -109,7 +119,7 @@ class Compile {
         console.log(RegExp.$1)
         node.textContent = this.$vm[RegExp.$1]
         const exp = RegExp.$1;
-        this.update(node, this.$vm, exp, 'text')
+        //this.update(node, this.$vm, exp, 'text')
     }
 
     //编写update函数,可复用
@@ -122,11 +132,6 @@ class Compile {
             fn && fn(node, vm[exp])
         })
     }
-
-    textUpdator(node, value) {
-        node.textContent = value
-    }
-
 
     eventHandler(node, vm, exp, eventName) {
         //获取回调函数

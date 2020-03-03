@@ -21,24 +21,10 @@ class KVue {
         if (!value || typeof value !== 'object') {
             return
         }
-        //遍历
-        Object.keys(value).forEach(key => {
+        Object.keys(value).forEach(key => { /*遍历value的keys*/
             //对key做响应式处理
             this.defineReactive(value, key, value[key])
             this.proxyData(key)
-        })
-    }
-
-    //在vue根上定义属性代理data中的数据
-    //定义了之后可以直接用`.`访问属性，不用`$data.`
-    proxyData(key) {
-        Object.defineProperty(this, key, {
-            get() {
-                return this.$data[key]
-            },
-            set(newVal) {
-                this.$data[key] = newVal
-            }
         })
     }
 
@@ -51,6 +37,7 @@ class KVue {
 
         //给obj定义属性
         Object.defineProperty(obj, key, {
+            //用get、set做拦截器
             get() {
                 //将Dep.target指向Watcher实例的Dep中
                 Dep.target && dep.addDep(Dep.target)
@@ -59,8 +46,21 @@ class KVue {
             set(newVal) {
                 if (newVal !== val) {
                     val = newVal
-                    console.log(`${key}属性更新了`)
+                    dep.notify()
                 }
+            }
+        })
+    }
+
+    //在vue根上定义属性代理data中的数据
+    //定义了之后可以直接用`.`访问属性，不用`$data.`
+    proxyData(key) {
+        Object.defineProperty(this, key, {
+            get() {
+                return this.$data[key]
+            },
+            set(newVal) {
+                this.$data[key] = newVal
             }
         })
     }
@@ -85,6 +85,12 @@ class Dep {
 
 //保存ui中依赖，实现update函数可以更新它
 class Watcher {
+    /**
+     *
+     * @param vm
+     * @param key
+     * @param cb    回调函数
+     */
     constructor(vm, key, cb) {
         this.vm = vm;
         this.key = key;
